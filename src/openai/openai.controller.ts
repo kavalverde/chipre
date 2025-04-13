@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { OpenaiService } from './openai.service';
 import { AssistantService } from './assistant/assistant.service';
 import { QuestionDto } from './assistant/dto';
@@ -10,7 +10,7 @@ export class OpenaiController {
     private readonly assistantService: AssistantService,
   ) {}
 
-  @Post('thread')
+  @Get('thread')
   createThread() {
     return this.assistantService.createThread();
   }

@@ -14,6 +14,7 @@ export const submitToolOptionsUseCase = async (
   const { threadId, runId, submitFunction } = props;
   try {
     let runStatus = await openai.beta.threads.runs.retrieve(threadId, runId);
+    console.log('Run status:', runStatus);
 
     // Procesar llamadas a funciones si es necesario
     while (
