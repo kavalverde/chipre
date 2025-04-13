@@ -1,10 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
+import { OPENAI_INSTANCE } from './providers/openai.provider';
 
 @Injectable()
 export class OpenaiService {
-  private openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    project: process.env.OPENAI_PROJECT_ID,
-  });
+  constructor(
+    @Inject(OPENAI_INSTANCE) private readonly openai: OpenAI
+  ) {}
+
+  getOpenAIInstance(): OpenAI {
+    return this.openai;
+  }
 }
