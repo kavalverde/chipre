@@ -20,10 +20,11 @@ interface Run {
 export const checkCompleteStatusUseCase = async (
   openai: OpenAI,
   props: Props,
+  
 ):Promise<Run> => {
   const { threadId, runId } = props;
   try {
-    const runStatus = await openai.beta.threads.runs.retrieve(threadId, runId);
+    let runStatus = await openai.beta.threads.runs.retrieve(threadId, runId);
   
     if (runStatus.status === 'completed') {
      return {

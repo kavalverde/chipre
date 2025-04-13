@@ -27,9 +27,25 @@ export const createRunUseCase = async (
     }
     const run = await openai.beta.threads.runs.create(threadId, {
       assistant_id: assistantId,
-      response_format: {
-        type: 'json_object',
-      },
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "searchDistrict",
+            description: "Busca un distrito por nombre y devuelve el más relevante",
+            parameters: {
+              type: "object",
+              properties: {
+                name: {
+                  type: "string",
+                  description: "El nombre del distrito a buscar"
+                }
+              },
+              required: ["name"]
+            }
+          }
+        }
+      ]
     });
     if (!run) {
       throw new Error('Error creating run');
