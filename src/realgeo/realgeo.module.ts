@@ -2,8 +2,15 @@ import { Module } from '@nestjs/common';
 import { RealgeoService } from './realgeo.service';
 import { RealgeoController } from './realgeo.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Building, District, Municipality, Parcel, Quarter, Unit } from './entities';
-
+import {
+  Building,
+  District,
+  Municipality,
+  Parcel,
+  Quarter,
+  Unit,
+} from './entities';
+import { DistrictRepository } from './repositories/districts.repository';
 
 @Module({
   imports: [
@@ -17,6 +24,7 @@ import { Building, District, Municipality, Parcel, Quarter, Unit } from './entit
     ]),
   ],
   controllers: [RealgeoController],
-  providers: [RealgeoService],
+  providers: [RealgeoService, DistrictRepository],
+  exports: [RealgeoService, DistrictRepository],
 })
 export class RealgeoModule {}
