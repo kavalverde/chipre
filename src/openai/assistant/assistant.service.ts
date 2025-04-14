@@ -63,7 +63,7 @@ export class AssistantService {
       throw new InternalServerErrorException('Error creating run');
     }
 
-    const _toolOptions = await submitToolOptionsUseCase(
+    const check = await submitToolOptionsUseCase(
       this.openai,
       {
         threadId,
@@ -72,10 +72,10 @@ export class AssistantService {
       },
     )
 
-    const check = await checkCompleteStatusUseCase(this.openai, {
+  /*   const check = await checkCompleteStatusUseCase(this.openai, {
       runId: run.id,
       threadId,
-    });
+    }); */
 
     const messages = await getMessageListUseCase(this.openai, { threadId });
 

@@ -18,7 +18,7 @@ export class DistrictRepository extends Repository<District> {
     }
     try {
       const districts = await this.createQueryBuilder('district')
-        .where('district.name LIKE :name', { name: `%${name}%` })
+        .where('district.dist_nm_e LIKE :name', { name: `%${name}%` })
         .getMany();
       return districts;
     } catch (error) {

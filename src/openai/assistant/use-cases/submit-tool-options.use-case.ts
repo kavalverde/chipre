@@ -1,4 +1,5 @@
 import { InternalServerErrorException } from '@nestjs/common';
+import * as dayjs from 'dayjs'
 import OpenAI from 'openai';
 
 interface Props {
@@ -15,47 +16,84 @@ export const submitToolOptionsUseCase = async (
   try {
     let runStatus = await openai.beta.threads.runs.retrieve(threadId, runId);
     console.log('Run status:', runStatus);
-
-    // Procesar llamadas a funciones si es necesario
+    let maxAttempts = 60; // Máximo 60 intentos (aproximadamente 60 segundos en total)
+    let attempts = 0;
     while (
-      runStatus.status === 'requires_action' &&
-      runStatus.required_action?.type === 'submit_tool_outputs'
+      ['in_progress', 'queued', 'requires_action'].includes(runStatus.status) &&
+      attempts < maxAttempts
     ) {
-      const toolCalls =
-        runStatus.required_action.submit_tool_outputs.tool_calls;
+      attempts++;
 
-      let toolOutputs: { tool_call_id: string; output: string }[] = [];
+      if (
+        runStatus.status === 'requires_action' &&
+        runStatus.required_action?.type === 'submit_tool_outputs'
+      ) {
+        const toolCalls =
+          runStatus.required_action.submit_tool_outputs.tool_calls;
+        const toolOutputs: { tool_call_id: string; output: string }[] = [];
 
-      for (const toolCall of toolCalls) {
-        if (toolCall.function.name === 'searchDistrict') {
-          const functionArgs = JSON.parse(toolCall.function.arguments);
-          const district = await submitFunction(functionArgs.name);
+        for (const toolCall of toolCalls) {
+          if (toolCall.function.name === 'searchDistrict') {
+            const functionArgs = JSON.parse(toolCall.function.arguments);
+            const district = await submitFunction(functionArgs.name);
 
-          let response;
-          if (district) {
-            response = {
-              districtId: district.districtId,
-              name: district.distNmE || district.distNmG,
-            };
-          } else {
-            response = {
-              message: 'No se encontró ningún distrito con ese nombre',
-            };
+            let response;
+            if (district) {
+              response = {
+                districtId: district.districtId,
+                name: district.distNmE || district.distNmG,
+              };
+            } else {
+              response = {
+                message: 'No se encontró ningún distrito con ese nombre',
+              };
+            }
+
+            toolOutputs.push({
+              tool_call_id: toolCall.id,
+              output: JSON.stringify(response),
+            });
           }
-
-          toolOutputs.push({
-            tool_call_id: toolCall.id,
-            output: JSON.stringify(response),
-          });
         }
-      }
 
-      runStatus = await openai.beta.threads.runs.submitToolOutputs(
-        threadId,
-        runId,
-        { tool_outputs: toolOutputs },
-      );
+        runStatus = await openai.beta.threads.runs.submitToolOutputs(
+          threadId,
+          runId,
+          { tool_outputs: toolOutputs },
+        );
+
+        attempts = 0;
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        runStatus = await openai.beta.threads.runs.retrieve(threadId, runId);
+        console.log('Run status:', runStatus);
+      }
     }
+
+    if (runStatus.status !== 'completed') {
+      console.warn(`Run finalizó con estado: ${runStatus.status}`);
+      if (runStatus.status === 'failed') {
+        throw new InternalServerErrorException(
+          `Run failed: ${runStatus.last_error?.message || 'Unknown error'}`,
+        );
+      }
+      if (attempts >= maxAttempts) {
+        throw new InternalServerErrorException(
+          'Timeout waiting for run to complete',
+        );
+      }
+    }
+    return {
+      id: runStatus.id,
+      assistantId: runStatus.assistant_id,
+      status: runStatus.status,
+      startedAt:
+        dayjs(runStatus.created_at).format('YYYY-MM-DD HH:mm:ss') || '',
+      completedAt:
+        dayjs(runStatus.created_at).format('YYYY-MM-DD HH:mm:ss') || '',
+      model: runStatus.model,
+      usage: runStatus.usage || null,
+    };
   } catch (error) {
     console.error('Error checking run status:', error);
     throw new InternalServerErrorException('Error checking run status');

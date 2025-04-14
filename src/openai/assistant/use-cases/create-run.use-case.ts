@@ -45,7 +45,10 @@ export const createRunUseCase = async (
             }
           }
         }
-      ]
+      ],
+      response_format: {
+        type: "json_object"
+      }
     });
     if (!run) {
       throw new Error('Error creating run');
