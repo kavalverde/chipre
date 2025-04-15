@@ -11,6 +11,9 @@ import {
   Unit,
 } from './entities';
 import { DistrictRepository } from './repositories/districts.repository';
+import { MunicipalityRepository } from './repositories/municipalities.repository';
+import { ParcersRepository } from './repositories/parcels.repository';
+import { QuartersRepository } from './repositories/quarters.repository';
 
 @Module({
   imports: [
@@ -24,7 +27,19 @@ import { DistrictRepository } from './repositories/districts.repository';
     ]),
   ],
   controllers: [RealgeoController],
-  providers: [RealgeoService, DistrictRepository],
-  exports: [RealgeoService, DistrictRepository],
+  providers: [
+    RealgeoService,
+    DistrictRepository,
+    MunicipalityRepository,
+    ParcersRepository,
+    QuartersRepository,
+  ],
+  exports: [
+    RealgeoService,
+    DistrictRepository,
+    MunicipalityRepository,
+    ParcersRepository,
+    QuartersRepository,
+  ],
 })
 export class RealgeoModule {}
