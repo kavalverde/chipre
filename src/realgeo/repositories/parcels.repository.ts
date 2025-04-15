@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -12,55 +11,46 @@ export class ParcersRepository extends Repository<Parcel> {
     super(Parcel, dataSource.createEntityManager());
   }
 
-  async findParcelByIdDistIdMunicipalitiesAndIdQuarter({
-    idMunicipality,
-    idDistrict,
-    idQuarter,
-  }: {
-    idMunicipality: number;
-    idDistrict: number;
-    idQuarter: number;
-  }): Promise<Parcel[]> {
-    if (!idMunicipality || !idDistrict) {
-      throw new BadRequestException('Municipality and District IDs cannot be empty');
-    }
+  async findParcelByRegistrationNumber(registrationNumber: string) {
     try {
-      const quarters = await this.createQueryBuilder('quarter')
-        .where('quarter.mun_id = :idMunicipality', { idMunicipality })
-        .andWhere('quarter.dist_id = :idDistrict', { idDistrict })
-        .andWhere('quarter.qrtr_code = :idQuarter', { idQuarter })
-        .getMany();
-      return quarters;
+      console.log(`Buscando parcela con número de registro: ${registrationNumber}`);
+      
+      // Buscar la parcela por su número de registro
+      const parcel = await this.createQueryBuilder('parcel')
+        .where('parcel.pr_registration_no = :registrationNumber', { registrationNumber })
+        .getOne();
+      
+      if (parcel) {
+        console.log(`Parcela encontrada: ID=${parcel.parcelId}, Distrito=${parcel.distCode}, Municipalidad=${parcel.vilCode}, Barrio=${parcel.qrtrCode}`);
+      } else {
+        console.log('No se encontró ninguna parcela con ese número de registro');
+      } 
+      return parcel;
     } catch (error) {
-      console.error('Error finding quarters by municipality and district:', error);
-      throw new InternalServerErrorException('Error finding quarters by municipality and district');
+      console.error('Error buscando parcela por número de registro:', error);
+      throw new InternalServerErrorException('Error buscando parcela por número de registro');
     }
   }
-  async findParcelByIdDistIdMunicipalitiesAndIdQuarterAndPrRegistrationNo({
-    idMunicipality,
-    idDistrict,
-    idQuarter,
-    prRegistrationNo,
-  }: {
-    idMunicipality: number;
-    idDistrict: number;
-    idQuarter: number;
-    prRegistrationNo: string;
-  }): Promise<Parcel[]> {
-    if (!idMunicipality || !idDistrict) {
-      throw new BadRequestException('Municipality and District IDs cannot be empty');
-    }
+
+  async findParcelsByDistrictAndMunicipality(distCode: number, vilCode: number, qrtrCode?: number): Promise<Parcel[]> {
     try {
-      const quarters = await this.createQueryBuilder('quarter')
-        .where('quarter.mun_id = :idMunicipality', { idMunicipality })
-        .andWhere('quarter.dist_id = :idDistrict', { idDistrict })
-        .andWhere('quarter.qrtr_code = :idQuarter', { idQuarter })
-        .andWhere('quarter.pr_registration_no = :prRegistrationNo', { prRegistrationNo })
-        .getMany();
-      return quarters;
+      const query = this.createQueryBuilder('parcel')
+        .where('parcel.dist_code = :distCode', { distCode })
+        .andWhere('parcel.vil_code = :vilCode', { vilCode });
+      
+      // Si se proporciona el código de barrio, incluirlo en la consulta
+      if (qrtrCode) {
+        query.andWhere('parcel.qrtr_code = :qrtrCode', { qrtrCode });
+      }
+      
+      const parcels = await query.getMany();
+      
+      console.log(`Encontradas ${parcels.length} parcelas para distrito ${distCode}, municipalidad ${vilCode}${qrtrCode ? ', barrio ' + qrtrCode : ''}`);
+      
+      return parcels;
     } catch (error) {
-      console.error('Error finding quarters by municipality and district:', error);
-      throw new InternalServerErrorException('Error finding quarters by municipality and district');
+      console.error('Error buscando parcelas:', error);
+      throw new InternalServerErrorException('Error buscando parcelas');
     }
   }
 }

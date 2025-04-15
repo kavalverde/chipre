@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { RealgeoService } from './realgeo.service';
-import { RealgeoController } from './realgeo.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   Building,
@@ -14,6 +13,7 @@ import { DistrictRepository } from './repositories/districts.repository';
 import { MunicipalityRepository } from './repositories/municipalities.repository';
 import { ParcersRepository } from './repositories/parcels.repository';
 import { QuartersRepository } from './repositories/quarters.repository';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -25,8 +25,8 @@ import { QuartersRepository } from './repositories/quarters.repository';
       Quarter,
       Unit,
     ]),
+    HttpModule
   ],
-  controllers: [RealgeoController],
   providers: [
     RealgeoService,
     DistrictRepository,
