@@ -1,18 +1,18 @@
 import { InternalServerErrorException } from '@nestjs/common';
-import * as dayjs from 'dayjs'
+import * as dayjs from 'dayjs';
 import OpenAI from 'openai';
 
 interface Props {
   threadId: string;
   runId: string;
-  submitFunction: Function;
+  toolFunctions: Record<string, Function>;
 }
 
 export const submitToolOptionsUseCase = async (
   openai: OpenAI,
   props: Props,
 ) => {
-  const { threadId, runId, submitFunction } = props;
+  const { threadId, runId, toolFunctions } = props;
   try {
     let runStatus = await openai.beta.threads.runs.retrieve(threadId, runId);
     console.log('Run status:', runStatus);
@@ -33,25 +33,45 @@ export const submitToolOptionsUseCase = async (
         const toolOutputs: { tool_call_id: string; output: string }[] = [];
 
         for (const toolCall of toolCalls) {
-          if (toolCall.function.name === 'searchDistrict') {
-            const functionArgs = JSON.parse(toolCall.function.arguments);
-            const district = await submitFunction(functionArgs.name);
+          const functionName = toolCall.function.name;
+          const functionArgs = JSON.parse(toolCall.function.arguments);
 
-            let response;
-            if (district) {
-              response = {
-                districtId: district.districtId,
-                name: district.distNmE || district.distNmG,
-              };
-            } else {
-              response = {
-                message: 'No se encontró ningún distrito con ese nombre',
-              };
+          if (toolFunctions[functionName]) {
+            try {
+              // Ejecutar la función correspondiente con los argumentos proporcionados
+              const result = await toolFunctions[functionName](
+                functionArgs.name ? functionArgs.name : functionArgs,
+              );
+
+              toolOutputs.push({
+                tool_call_id: toolCall.id,
+                output: JSON.stringify(
+                  result || {
+                    message: `No se encontraron resultados para ${functionName}`,
+                  },
+                ),
+              });
+            } catch (error) {
+              console.error(
+                `Error ejecutando la función ${functionName}:`,
+                error,
+              );
+              toolOutputs.push({
+                tool_call_id: toolCall.id,
+                output: JSON.stringify({
+                  error: true,
+                  message: `Error al ejecutar ${functionName}: ${error.message}`,
+                }),
+              });
             }
-
+          } else {
+            console.warn(`Función no implementada: ${functionName}`);
             toolOutputs.push({
               tool_call_id: toolCall.id,
-              output: JSON.stringify(response),
+              output: JSON.stringify({
+                error: true,
+                message: `Función no implementada: ${functionName}`,
+              }),
             });
           }
         }
