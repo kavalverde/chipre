@@ -15,7 +15,6 @@ export const submitToolOptionsUseCase = async (
   const { threadId, runId, toolFunctions } = props;
   try {
     let runStatus = await openai.beta.threads.runs.retrieve(threadId, runId);
-    console.log('Run status:', runStatus);
     let maxAttempts = 60; // Máximo 60 intentos (aproximadamente 60 segundos en total)
     let attempts = 0;
     while (
