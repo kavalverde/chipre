@@ -36,4 +36,31 @@ export class ParcersRepository extends Repository<Parcel> {
       throw new InternalServerErrorException('Error finding quarters by municipality and district');
     }
   }
+  async findParcelByIdDistIdMunicipalitiesAndIdQuarterAndPrRegistrationNo({
+    idMunicipality,
+    idDistrict,
+    idQuarter,
+    prRegistrationNo,
+  }: {
+    idMunicipality: number;
+    idDistrict: number;
+    idQuarter: number;
+    prRegistrationNo: string;
+  }): Promise<Parcel[]> {
+    if (!idMunicipality || !idDistrict) {
+      throw new BadRequestException('Municipality and District IDs cannot be empty');
+    }
+    try {
+      const quarters = await this.createQueryBuilder('quarter')
+        .where('quarter.mun_id = :idMunicipality', { idMunicipality })
+        .andWhere('quarter.dist_id = :idDistrict', { idDistrict })
+        .andWhere('quarter.qrtr_code = :idQuarter', { idQuarter })
+        .andWhere('quarter.pr_registration_no = :prRegistrationNo', { prRegistrationNo })
+        .getMany();
+      return quarters;
+    } catch (error) {
+      console.error('Error finding quarters by municipality and district:', error);
+      throw new InternalServerErrorException('Error finding quarters by municipality and district');
+    }
+  }
 }
