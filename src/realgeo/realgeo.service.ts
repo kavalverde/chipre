@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import { DistrictRepository } from 'src/realgeo/repositories/districts.repository';
 import { MunicipalityRepository } from 'src/realgeo/repositories/municipalities.repository';
@@ -7,6 +7,7 @@ import { QuartersRepository } from 'src/realgeo/repositories/quarters.repository
 
 @Injectable()
 export class RealgeoService {
+  parcelsRepository: any;
   constructor(
     private readonly districtRepository: DistrictRepository,
     private readonly municipalityRepository: MunicipalityRepository,
@@ -104,6 +105,7 @@ export class RealgeoService {
       if (quarters && quarters.length > 0) {
         return {
           quarterCode: quarters[0].qrtrCode,
+          qrtrCode: quarters[0].qrtrCode,
           name: quarters[0].quartersE || quarters[0].qrtrNmG,
         };
       }
@@ -130,9 +132,17 @@ export class RealgeoService {
     try {
       console.log('Buscando propiedad con parámetros:', params);
 
-      // Construir URL para la API externa
       const { distCode, vilCode, qrtrCode, registrationNumber } = params;
 
+      // Verificar que los parámetros necesarios estén presentes
+      if (!distCode || !vilCode || !qrtrCode || !registrationNumber) {
+        return {
+          success: false,
+          message: 'Faltan parámetros obligatorios para la búsqueda',
+        };
+      }
+
+      // Extraer bloque y número de registro
       let regblock = 0;
       let regno = 0;
 
@@ -146,6 +156,24 @@ export class RealgeoService {
         regno = parseInt(registrationNumber, 10) || 0;
       }
 
+      // Buscar la parcela en la base de datos para obtener el blckCode correcto
+      const parcel = await this.parcelsRepository.findOne({
+        where: {
+          distCode: distCode,
+          vilCode: vilCode,
+          qrtrCode: qrtrCode,
+          prRegistrationNo: registrationNumber,
+        },
+      });
+
+      // Si se encuentra la parcela, utilizar su blckCode para el regblock
+      if (parcel) {
+        console.log('Parcela encontrada en la base de datos:', parcel);
+        regblock = parcel.blckCode || regblock;
+      } else {
+        console.log('No se encontró la parcela en la base de datos, usando valores proporcionados');
+      }
+
       console.log('Datos procesados para la búsqueda:');
       console.log('Distrito:', distCode);
       console.log('Municipalidad:', vilCode);
@@ -153,6 +181,7 @@ export class RealgeoService {
       console.log('Bloque de Registro:', regblock);
       console.log('Número de Registro:', regno);
 
+      // Construir URL para la API externa
       const url = `https://rest.gisrealestate.com/api/search/searchreg?dist_code=${distCode}&vil_code=${vilCode}&qrtr_code=${qrtrCode}&regblock=${regblock}&regno=${regno}&source=db&cw=1&uw=1`;
 
       console.log('URL de consulta:', url);
@@ -167,9 +196,39 @@ export class RealgeoService {
         }),
       );
 
-      console.log('Respuesta de la API:', response.data);
+      const data = response.data;
+      console.log('Respuesta recibida de la API de GIS Real Estate');
 
-      return response.data || null;
+      // Procesar la respuesta
+      if (data && data.success === true) {
+        return {
+          success: true,
+          propertyDetails: data.data || [],
+          message: 'Propiedad encontrada con éxito',
+          searchParams: {
+            distrito: distCode,
+            municipalidad: vilCode, 
+            barrio: qrtrCode,
+            registroCompleto: registrationNumber,
+            bloque: regblock,
+            numeroRegistro: regno
+          }
+        };
+      } else {
+        return {
+          success: false,
+          message: 'No se encontraron propiedades con los parámetros proporcionados',
+          searchParams: {
+            distrito: distCode,
+            municipalidad: vilCode, 
+            barrio: qrtrCode,
+            registroCompleto: registrationNumber,
+            bloque: regblock,
+            numeroRegistro: regno
+          },
+          apiResponse: data
+        };
+      }
     } catch (error) {
       console.error('Error consultando API de GIS Real Estate:', error);
       return {

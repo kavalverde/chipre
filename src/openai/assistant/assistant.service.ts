@@ -16,6 +16,105 @@ import { QuestionDto } from './dto';
 
 import { RealgeoService } from 'src/realgeo/realgeo.service';
 
+const ASSISTANT_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'searchDistrict',
+      description: 'Busca un distrito por nombre',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            description: 'El nombre del distrito a buscar',
+          },
+        },
+        required: ['name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'searchMunicipality',
+      description: 'Busca una municipalidad por nombre',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: {
+            type: 'string',
+            description: 'El nombre de la municipalidad a buscar',
+          },
+        },
+        required: ['name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'searchQuarter',
+      description:
+        'Busca un barrio por nombre en un distrito y municipalidad específicos',
+      parameters: {
+        type: 'object',
+        properties: {
+          districtCode: {
+            type: 'number',
+            description: 'El código del distrito (dist_code)',
+          },
+          vilCode: {
+            type: 'number',
+            description: 'El código de la municipalidad (vil_code)',
+          },
+          name: {
+            type: 'string',
+            description: 'El nombre del barrio a buscar',
+          },
+        },
+        required: ['districtCode', 'vilCode', 'name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'searchRealEstate',
+      description:
+        'Busca propiedades inmobiliarias usando los códigos proporcionados',
+      parameters: {
+        type: 'object',
+        properties: {
+          distCode: {
+            type: 'number',
+            description: 'El código del distrito',
+          },
+          vilCode: {
+            type: 'number',
+            description: 'El código de la municipalidad',
+          },
+          qrtrCode: {
+            type: 'number',
+            description: 'El código del barrio',
+          },
+          registrationNumber: {
+            type: 'string',
+            description:
+              "El número de registro en formato 'bloque/número', por ejemplo '0/522'",
+          },
+        },
+        required: [
+          'distCode',
+          'vilCode',
+          'qrtrCode',
+          'registrationNumber',
+        ],
+      },
+    },
+  },
+];
+
 @Injectable()
 export class AssistantService {
   constructor(
@@ -53,104 +152,7 @@ export class AssistantService {
       const run = await createRunUseCase(this.openai, {
         assistantId,
         threadId,
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'searchDistrict',
-              description: 'Busca un distrito por nombre',
-              parameters: {
-                type: 'object',
-                properties: {
-                  name: {
-                    type: 'string',
-                    description: 'El nombre del distrito a buscar',
-                  },
-                },
-                required: ['name'],
-              },
-            },
-          },
-          {
-            type: 'function',
-            function: {
-              name: 'searchMunicipality',
-              description: 'Busca una municipalidad por nombre',
-              parameters: {
-                type: 'object',
-                properties: {
-                  name: {
-                    type: 'string',
-                    description: 'El nombre de la municipalidad a buscar',
-                  },
-                },
-                required: ['name'],
-              },
-            },
-          },
-          {
-            type: 'function',
-            function: {
-              name: 'searchQuarter',
-              description:
-                'Busca un barrio por nombre en un distrito y municipalidad específicos',
-              parameters: {
-                type: 'object',
-                properties: {
-                  districtCode: {
-                    type: 'number',
-                    description: 'El código del distrito',
-                  },
-                  vilCode: {
-                    type: 'number',
-                    description: 'El código de la municipalidad',
-                  },
-                  name: {
-                    type: 'string',
-                    description: 'El nombre del barrio a buscar',
-                  },
-                },
-                required: ['districtCode', 'vilCode', 'name'],
-              },
-            },
-          },
-          {
-            type: 'function',
-            function: {
-              name: 'searchRealEstate',
-              description:
-                'Busca propiedades inmobiliarias usando los códigos proporcionados',
-              parameters: {
-                type: 'object',
-                properties: {
-                  distCode: {
-                    type: 'number',
-                    description: 'El código del distrito',
-                  },
-                  vilCode: {
-                    type: 'number',
-                    description: 'El código de la municipalidad',
-                  },
-                  qrtrCode: {
-                    type: 'number',
-                    description: 'El código del barrio',
-                  },
-                  registrationNumber: {
-                    type: 'string',
-                    description:
-                      "El número de registro en formato 'bloque/número', por ejemplo '0/522'",
-                  },
-                },
-                required: [
-                  'distCode',
-                  'vilCode',
-                  'qrtrCode',
-                  'registrationNumber',
-                ],
-              },
-            },
-          },
-        ],
+        tools: ASSISTANT_TOOLS,
       });
 
       if (!run) {
