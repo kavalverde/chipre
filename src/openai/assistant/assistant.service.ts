@@ -104,12 +104,7 @@ const ASSISTANT_TOOLS = [
               "El número de registro en formato 'bloque/número', por ejemplo '0/522'",
           },
         },
-        required: [
-          'distCode',
-          'vilCode',
-          'qrtrCode',
-          'registrationNumber',
-        ],
+        required: ['distCode', 'vilCode', 'qrtrCode', 'registrationNumber'],
       },
     },
   },
@@ -118,7 +113,7 @@ const ASSISTANT_TOOLS = [
 @Injectable()
 export class AssistantService {
   constructor(
-    @Inject(OPENAI_INSTANCE) 
+    @Inject(OPENAI_INSTANCE)
     private readonly openai: OpenAI,
     private readonly realgeoService: RealgeoService,
   ) {}
@@ -127,7 +122,11 @@ export class AssistantService {
     try {
       const thread = await createThreadUseCase(this.openai);
       return {
-        threadId: thread,
+        success: true,
+        message: 'Thread creado exitosamente',
+        data: {
+          threadId: thread,
+        },
       };
     } catch (error) {
       console.error('Error al crear thread:', error);
@@ -166,10 +165,14 @@ export class AssistantService {
         threadId,
         runId: run.id,
         toolFunctions: {
-          searchDistrict: (name) => this.realgeoService.findDistrictByName(name),
-          searchMunicipality: (name) => this.realgeoService.findMunicipalityByName(name),
-          searchQuarter: (params) => this.realgeoService.findQuarterByName(params),
-          searchRealEstate: (params) => this.realgeoService.searchRealEstate(params),
+          searchDistrict: (name) =>
+            this.realgeoService.findDistrictByName(name),
+          searchMunicipality: (name) =>
+            this.realgeoService.findMunicipalityByName(name),
+          searchQuarter: (params) =>
+            this.realgeoService.findQuarterByName(params),
+          searchRealEstate: (params) =>
+            this.realgeoService.searchRealEstate(params),
         },
       });
 
@@ -195,15 +198,19 @@ export class AssistantService {
       }
 
       return {
-        runId: run.id,
-        status: check.status,
-        startedAt: check.startedAt,
-        completedAt: check.completedAt,
-        model: check.model,
-        usage: check.usage,
-        userMessage: question,
-        assistantResponse: assistantResponse,
-        messages,
+        success: true,
+        message: 'Consulta procesada exitosamente',
+        data: {
+          runId: run.id,
+          status: check.status,
+          startedAt: check.startedAt,
+          completedAt: check.completedAt,
+          model: check.model,
+          usage: check.usage,
+          userMessage: question,
+          assistantResponse: assistantResponse,
+          messages,
+        },
       };
     } catch (error) {
       console.error('Error en execute:', error);

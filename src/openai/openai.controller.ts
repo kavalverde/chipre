@@ -10,7 +10,7 @@ export class OpenaiController {
     private readonly assistantService: AssistantService,
   ) {}
 
-  @Get('thread')
+  @Get('assistant/thread')
   createThread() {
     return this.assistantService.createThread();
   }
