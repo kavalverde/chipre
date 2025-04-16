@@ -166,11 +166,10 @@ export class AssistantService {
         threadId,
         runId: run.id,
         toolFunctions: {
-          searchDistrict: this.realgeoService.findDistrictByName.bind(this),
-          searchMunicipality:
-            this.realgeoService.findMunicipalityByName.bind(this),
-          searchQuarter: this.realgeoService.findQuarterByName.bind(this),
-          searchRealEstate: this.realgeoService.searchRealEstate.bind(this),
+          searchDistrict: (name) => this.realgeoService.findDistrictByName(name),
+          searchMunicipality: (name) => this.realgeoService.findMunicipalityByName(name),
+          searchQuarter: (params) => this.realgeoService.findQuarterByName(params),
+          searchRealEstate: (params) => this.realgeoService.searchRealEstate(params),
         },
       });
 

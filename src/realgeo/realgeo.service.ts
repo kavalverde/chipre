@@ -4,15 +4,16 @@ import { lastValueFrom } from 'rxjs';
 import { DistrictRepository } from 'src/realgeo/repositories/districts.repository';
 import { MunicipalityRepository } from 'src/realgeo/repositories/municipalities.repository';
 import { QuartersRepository } from 'src/realgeo/repositories/quarters.repository';
+import { ParcersRepository } from './repositories/parcels.repository';
 
 @Injectable()
 export class RealgeoService {
-  parcelsRepository: any;
   constructor(
     private readonly districtRepository: DistrictRepository,
     private readonly municipalityRepository: MunicipalityRepository,
     private readonly quartersRepository: QuartersRepository,
     private readonly httpService: HttpService,
+    private readonly parcelsRepository: ParcersRepository,
   ) {}
 
   async findDistrictByName(name: string) {
@@ -135,7 +136,15 @@ export class RealgeoService {
       const { distCode, vilCode, qrtrCode, registrationNumber } = params;
 
       // Verificar que los parámetros necesarios estén presentes
-      if (!distCode || !vilCode || !qrtrCode || !registrationNumber) {
+      if (
+        distCode === null ||
+        distCode === undefined ||
+        vilCode === null ||
+        vilCode === undefined ||
+        qrtrCode === null ||
+        qrtrCode === undefined ||
+        !registrationNumber
+      ) {
         return {
           success: false,
           message: 'Faltan parámetros obligatorios para la búsqueda',
@@ -171,7 +180,9 @@ export class RealgeoService {
         console.log('Parcela encontrada en la base de datos:', parcel);
         regblock = parcel.blckCode || regblock;
       } else {
-        console.log('No se encontró la parcela en la base de datos, usando valores proporcionados');
+        console.log(
+          'No se encontró la parcela en la base de datos, usando valores proporcionados',
+        );
       }
 
       console.log('Datos procesados para la búsqueda:');
@@ -191,7 +202,7 @@ export class RealgeoService {
         this.httpService.get(url, {
           headers: {
             'X-Access-Token':
-              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzQ0Njk2NDU0LCJleHAiOjE3NDQ3ODI4NTR9.YfMhywF9sgXDOe4brKxyY9ecWxfc0POux3mUmsuViXA',
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzQ0NzY5MDE3LCJleHAiOjE3NDQ4NTU0MTd9.EwOwtq6HidCurDlGxtOpY76cVKgJ2hSYBi_cPFacGW8',
           },
         }),
       );
@@ -207,26 +218,27 @@ export class RealgeoService {
           message: 'Propiedad encontrada con éxito',
           searchParams: {
             distrito: distCode,
-            municipalidad: vilCode, 
+            municipalidad: vilCode,
             barrio: qrtrCode,
             registroCompleto: registrationNumber,
             bloque: regblock,
-            numeroRegistro: regno
-          }
+            numeroRegistro: regno,
+          },
         };
       } else {
         return {
           success: false,
-          message: 'No se encontraron propiedades con los parámetros proporcionados',
+          message:
+            'No se encontraron propiedades con los parámetros proporcionados',
           searchParams: {
             distrito: distCode,
-            municipalidad: vilCode, 
+            municipalidad: vilCode,
             barrio: qrtrCode,
             registroCompleto: registrationNumber,
             bloque: regblock,
-            numeroRegistro: regno
+            numeroRegistro: regno,
           },
-          apiResponse: data
+          apiResponse: data,
         };
       }
     } catch (error) {

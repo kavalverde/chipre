@@ -28,18 +28,18 @@ import { HttpModule } from '@nestjs/axios';
     HttpModule
   ],
   providers: [
-    RealgeoService,
     DistrictRepository,
     MunicipalityRepository,
     ParcersRepository,
     QuartersRepository,
+    RealgeoService,
   ],
   exports: [
-    RealgeoService,
     DistrictRepository,
     MunicipalityRepository,
     ParcersRepository,
     QuartersRepository,
+    RealgeoService,
   ],
 })
 export class RealgeoModule {}
