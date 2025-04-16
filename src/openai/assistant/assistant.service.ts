@@ -181,6 +181,24 @@ export class AssistantService {
       const messages = await getMessageListUseCase(this.openai, { threadId });
       console.log('Mensajes obtenidos:', messages.length);
 
+      let formattedMessages = messages.map((message) => {
+        try {
+          return {
+            ...message,
+            content: JSON.parse(message.content)
+          };
+        } catch (error) {
+          return {
+            ...message,
+            content: {
+              message: message.content + "",
+            }
+
+          };
+        }
+      });
+      formattedMessages = formattedMessages.reverse();
+
       // Intentar parsear la respuesta como JSON
       let assistantResponse: any = null;
       try {
@@ -209,7 +227,7 @@ export class AssistantService {
           usage: check.usage,
           userMessage: question,
           assistantResponse: assistantResponse,
-          messages,
+          messages: formattedMessages,
         },
       };
     } catch (error) {

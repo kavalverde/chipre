@@ -211,10 +211,10 @@ export class RealgeoService {
       console.log('Respuesta recibida de la API de GIS Real Estate');
 
       // Procesar la respuesta
-      if (data && data.success === true) {
+      if (data) {
         return {
           success: true,
-          propertyDetails: data.data || [],
+          propertyDetails: data || [],
           message: 'Propiedad encontrada con éxito',
           searchParams: {
             distrito: distCode,
@@ -238,7 +238,6 @@ export class RealgeoService {
             bloque: regblock,
             numeroRegistro: regno,
           },
-          apiResponse: data,
         };
       }
     } catch (error) {
