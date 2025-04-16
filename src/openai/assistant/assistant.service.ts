@@ -180,25 +180,31 @@ export class AssistantService {
 
       const messages = await getMessageListUseCase(this.openai, { threadId });
       console.log('Mensajes obtenidos:', messages.length);
+      console.log('Mensaje:', messages[0].content);
 
-      let formattedMessages = messages.map((message) => {
+      const formattedMessages = messages.map((message) => {
         try {
-          return {
-            ...message,
-            content: JSON.parse(message.content)
-          };
-        } catch (error) {
-          return {
-            ...message,
-            content: {
-              message: message.content + "",
+          const parsed = JSON.parse(message.content);
+          return { ...message, content: parsed };
+        } catch (_) {
+          const content = message.content.trim();
+      
+          if (content.startsWith('{') || content.startsWith('[')) {
+            const fixed = tryFixMalformedOutput(content);
+            if (fixed) {
+              return { ...message, content: fixed };
             }
-
+          }
+      
+          return {
+            ...message,
+            content: { message: String(message.content) },
           };
         }
       });
-      formattedMessages = formattedMessages.reverse();
-
+      
+      const sortedMessages = [...formattedMessages].reverse();
+      
       // Intentar parsear la respuesta como JSON
       let assistantResponse: any = null;
       try {
@@ -227,7 +233,7 @@ export class AssistantService {
           usage: check.usage,
           userMessage: question,
           assistantResponse: assistantResponse,
-          messages: formattedMessages,
+          messages: sortedMessages,
         },
       };
     } catch (error) {
@@ -236,5 +242,35 @@ export class AssistantService {
         `Error al ejecutar asistente: ${error.message}`,
       );
     }
+  }
+}
+function sanitizeJSON(json: string): string {
+  return json
+    .trim()
+    .replace(/[\u0000-\u001F]+/g, ' ')
+    .replace(/,\s*([}\]])/g, '$1') // coma antes de ] o }
+    .replace(/([{,])\s*([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+    .replace(/\\"/g, '"');
+}
+
+function tryFixMalformedOutput(output: string) {
+  try {
+    const sanitized = sanitizeJSON(output);
+    const parsed = JSON.parse(sanitized);
+
+    if (Array.isArray(parsed.propertyDetails)) {
+      const details = parsed.propertyDetails;
+
+      // Detecta si es un array con mezcla de objetos y valores sueltos
+      if (Array.isArray(details[0]) && typeof details[0][0] === 'object') {
+        // Arreglamos para dejar solo el objeto principal
+        parsed.propertyDetails = details[0];
+      }
+    }
+
+    return parsed;
+  } catch (err) {
+    console.error('No se pudo reparar JSON:', err.message);
+    return null;
   }
 }

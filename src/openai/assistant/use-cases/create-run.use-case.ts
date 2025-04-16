@@ -31,7 +31,7 @@ export const createRunUseCase = async (
       assistant_id: assistantId,
       response_format: {
         type: "json_object"
-      }
+      },
     };
     
     if (tools && tools.length > 0) {
