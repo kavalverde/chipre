@@ -196,13 +196,14 @@ export class RealgeoService {
       const url = `https://rest.gisrealestate.com/api/search/searchreg?dist_code=${distCode}&vil_code=${vilCode}&qrtr_code=${qrtrCode}&regblock=${regblock}&regno=${regno}&source=db&cw=1&uw=1`;
 
       console.log('URL de consulta:', url);
+      const token = await this.createAuthSession();
+      console.log('Token de autenticación:', token);
 
       // Hacer solicitud a la API externa
       const response = await lastValueFrom(
         this.httpService.get(url, {
           headers: {
-            'X-Access-Token':
-              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiaWF0IjoxNzQ0NzY5MDE3LCJleHAiOjE3NDQ4NTU0MTd9.EwOwtq6HidCurDlGxtOpY76cVKgJ2hSYBi_cPFacGW8',
+            'X-Access-Token': token,
           },
         }),
       );
@@ -248,5 +249,23 @@ export class RealgeoService {
         error: error.message,
       };
     }
+  }
+  async createAuthSession() {
+    const {data} = await lastValueFrom(
+      this.httpService.post(
+        'https://rest.gisrealestate.com/api/auth/signin',
+        {
+          "username": "amaldonado",
+          "password": "andres00$$",
+          "rememberMe": false
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      ),
+    )
+    return data.accessToken || null;
   }
 }
