@@ -169,8 +169,20 @@ export class AssistantService {
             this.realgeoService.findDistrictByName(name),
           searchMunicipality: (name) =>
             this.realgeoService.findMunicipalityByName(name),
-          searchQuarter: (params) =>
-            this.realgeoService.findQuarterByName(params),
+          searchQuarter: ({
+            districtCode,
+            vilCode,
+            name,
+          }: {
+            districtCode: number;
+            vilCode: number;
+            name: string;
+          }) =>
+            this.realgeoService.findQuarterByName({
+              districtCode,
+              vilCode,
+              name,
+            }),
           searchRealEstate: (params) =>
             this.realgeoService.searchRealEstate(params),
         },
@@ -188,23 +200,23 @@ export class AssistantService {
           return { ...message, content: parsed };
         } catch (_) {
           const content = message.content.trim();
-      
+
           if (content.startsWith('{') || content.startsWith('[')) {
             const fixed = tryFixMalformedOutput(content);
             if (fixed) {
               return { ...message, content: fixed };
             }
           }
-      
+
           return {
             ...message,
             content: { message: String(message.content) },
           };
         }
       });
-      
+
       const sortedMessages = [...formattedMessages].reverse();
-      
+
       // Intentar parsear la respuesta como JSON
       let assistantResponse: any = null;
       try {
