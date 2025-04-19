@@ -166,24 +166,24 @@ export class RealgeoService {
       }
 
       // Buscar la parcela en la base de datos para obtener el blckCode correcto
-      const parcel = await this.parcelsRepository.findOne({
+    /*   const parcel = await this.parcelsRepository.findOne({
         where: {
           distCode: distCode,
           vilCode: vilCode,
           qrtrCode: qrtrCode,
           prRegistrationNo: registrationNumber,
         },
-      });
+      }); */
 
       // Si se encuentra la parcela, utilizar su blckCode para el regblock
-      if (parcel) {
+    /*   if (parcel) {
         console.log('Parcela encontrada en la base de datos:', parcel);
         regblock = parcel.blckCode || regblock;
       } else {
         console.log(
           'No se encontró la parcela en la base de datos, usando valores proporcionados',
         );
-      }
+      } */
 
       console.log('Datos procesados para la búsqueda:');
       console.log('Distrito:', distCode);
