@@ -133,6 +133,7 @@ export class AssistantService {
       throw new InternalServerErrorException('Error al crear thread');
     }
   }
+
   async execute(questionDto: QuestionDto) {
     try {
       const { threadId, question, assistantId } = questionDto;
@@ -161,30 +162,97 @@ export class AssistantService {
       console.log('Run creado, ID:', run.id);
       console.log('Procesando herramientas...');
 
+      // Mantenemos un estado temporal para preservar los resultados entre llamadas a funciones
+      let tempState: any = {
+        districtInfo: null,
+        municipalityInfo: null,
+        quarterInfo: null,
+      };
+
       const check = await submitToolOptionsUseCase(this.openai, {
         threadId,
         runId: run.id,
         toolFunctions: {
-          searchDistrict: (name) =>
-            this.realgeoService.findDistrictByName(name),
-          searchMunicipality: (name) =>
-            this.realgeoService.findMunicipalityByName(name),
-          searchQuarter: ({
-            districtCode,
-            vilCode,
-            name,
-          }: {
-            districtCode: number;
-            vilCode: number;
-            name: string;
-          }) =>
-            this.realgeoService.findQuarterByName({
-              districtCode,
-              vilCode,
+          searchDistrict: async (name) => {
+            const result = await this.realgeoService.findDistrictByName(name);
+            if (!result.success) {
+              return result;
+            }
+            // Guardamos en estado temporal
+            tempState.districtInfo = result;
+            return result;
+          },
+          searchMunicipality: async (name) => {
+            const result =
+              await this.realgeoService.findMunicipalityByName(name);
+            if (!result.success) {
+              return result;
+            }
+            // Guardamos en estado temporal
+            tempState.municipalityInfo = result;
+            return result;
+          },
+          searchQuarter: async (params) => {
+            // Validamos que tengamos datos correctos
+            const { districtCode, vilCode, name } = params;
+
+            // Si hay datos en el estado temporal, usamos esos en caso de inconsistencias
+            const finalDistCode =
+              tempState.districtInfo?.distCode || districtCode;
+            const finalVilCode = tempState.municipalityInfo?.vilCode || vilCode;
+
+            console.log(
+              `Parámetros ajustados: districtCode=${finalDistCode}, vilCode=${finalVilCode}`,
+            );
+
+            const result = await this.realgeoService.findQuarterByName({
+              districtCode: finalDistCode,
+              vilCode: finalVilCode,
               name,
-            }),
-          searchRealEstate: (params) =>
-            this.realgeoService.searchRealEstate(params),
+            });
+
+            if (!result.success) {
+              // Si no encontramos un barrio, pero tenemos distrito y municipalidad,
+              // usamos código 0 como fallback para el barrio
+              if (tempState.districtInfo && tempState.municipalityInfo) {
+                tempState.quarterInfo = {
+                  qrtrCode: 0,
+                  quarterCode: 0,
+                  name: 'Default',
+                };
+                return tempState.quarterInfo;
+              }
+              return result;
+            }
+
+            // Guardamos en estado temporal
+            tempState.quarterInfo = result;
+            return result;
+          },
+          searchRealEstate: async (params) => {
+            let { distCode, vilCode, qrtrCode, registrationNumber } = params;
+
+            // Usamos los datos del estado temporal si disponibles
+            distCode = tempState.districtInfo?.distCode || distCode;
+            vilCode = tempState.municipalityInfo?.vilCode || vilCode;
+            qrtrCode = tempState.quarterInfo?.qrtrCode ?? (qrtrCode || 0);
+
+            console.log(
+              `Parámetros finales de búsqueda: distCode=${distCode}, vilCode=${vilCode}, qrtrCode=${qrtrCode}, registrationNumber=${registrationNumber}`,
+            );
+
+            // Validamos el formato del número de registro
+            if (!registrationNumber.includes('/')) {
+              registrationNumber = `0/${registrationNumber}`;
+            }
+
+            return this.realgeoService.searchRealEstate({
+              distCode,
+              vilCode,
+              qrtrCode,
+              registrationNumber,
+            });
+          },
         },
       });
 
@@ -256,6 +324,7 @@ export class AssistantService {
     }
   }
 }
+
 function sanitizeJSON(json: string): string {
   return json
     .trim()
