@@ -154,7 +154,7 @@ export class RealgeoService {
       // Extraer bloque y número de registro
       let regblock = 0;
       let regno = 0;
-
+      console.log('Número de registro:', registrationNumber);
       if (registrationNumber && registrationNumber.includes('/')) {
         // Extraer los componentes del número de registro
         const parts = registrationNumber.split('/');
@@ -165,26 +165,6 @@ export class RealgeoService {
         regno = parseInt(registrationNumber, 10) || 0;
       }
 
-      // Buscar la parcela en la base de datos para obtener el blckCode correcto
-    /*   const parcel = await this.parcelsRepository.findOne({
-        where: {
-          distCode: distCode,
-          vilCode: vilCode,
-          qrtrCode: qrtrCode,
-          prRegistrationNo: registrationNumber,
-        },
-      }); */
-
-      // Si se encuentra la parcela, utilizar su blckCode para el regblock
-    /*   if (parcel) {
-        console.log('Parcela encontrada en la base de datos:', parcel);
-        regblock = parcel.blckCode || regblock;
-      } else {
-        console.log(
-          'No se encontró la parcela en la base de datos, usando valores proporcionados',
-        );
-      } */
-
       console.log('Datos procesados para la búsqueda:');
       console.log('Distrito:', distCode);
       console.log('Municipalidad:', vilCode);
@@ -192,55 +172,15 @@ export class RealgeoService {
       console.log('Bloque de Registro:', regblock);
       console.log('Número de Registro:', regno);
 
-      // Construir URL para la API externa
-      const url = `https://rest.gisrealestate.com/api/search/searchreg?dist_code=${distCode}&vil_code=${vilCode}&qrtr_code=${qrtrCode}&regblock=${regblock}&regno=${regno}&source=db&cw=1&uw=1`;
+      const response = await this.findResultsByUrl({
+        distCode,
+        vilCode,
+        qrtrCode,
+        regblock,
+        regno,
+      });
 
-      console.log('URL de consulta:', url);
-      const token = await this.createAuthSession();
-      console.log('Token de autenticación:', token);
-
-      // Hacer solicitud a la API externa
-      const response = await lastValueFrom(
-        this.httpService.get(url, {
-          headers: {
-            'X-Access-Token': token,
-          },
-        }),
-      );
-
-      const data = response.data;
-      console.log('Respuesta recibida de la API de GIS Real Estate');
-
-      // Procesar la respuesta
-      if (data) {
-        return {
-          success: true,
-          propertyDetails: data || [],
-          message: 'Propiedad encontrada con éxito',
-          searchParams: {
-            distrito: distCode,
-            municipalidad: vilCode,
-            barrio: qrtrCode,
-            registroCompleto: registrationNumber,
-            bloque: regblock,
-            numeroRegistro: regno,
-          },
-        };
-      } else {
-        return {
-          success: false,
-          message:
-            'No se encontraron propiedades con los parámetros proporcionados',
-          searchParams: {
-            distrito: distCode,
-            municipalidad: vilCode,
-            barrio: qrtrCode,
-            registroCompleto: registrationNumber,
-            bloque: regblock,
-            numeroRegistro: regno,
-          },
-        };
-      }
+      return response;
     } catch (error) {
       console.error('Error consultando API de GIS Real Estate:', error);
       return {
@@ -250,14 +190,68 @@ export class RealgeoService {
       };
     }
   }
+
+  async findResultsByUrl({
+    distCode,
+    vilCode,
+    qrtrCode,
+    regblock,
+    regno,
+  }: {
+    distCode: number;
+    vilCode: number;
+    qrtrCode: number;
+    regblock: number;
+    regno: number;
+  }) {
+    console.log('Datos procesados para la búsqueda:');
+    console.log('Distrito:', distCode);
+    console.log('Municipalidad:', vilCode);
+    console.log('Barrio:', qrtrCode);
+    console.log('Bloque de Registro:', regblock);
+    console.log('Número de Registro:', regno);
+    const url = `https://rest.gisrealestate.com/api/search/searchreg?dist_code=${distCode}&vil_code=${vilCode}&qrtr_code=${qrtrCode}&regblock=${regblock}&regno=${regno}&source=db&cw=1&uw=1`;
+    console.log('URL de consulta:', url);
+    const token = await this.createAuthSession();
+
+    console.log('Token de autenticación:', token);
+
+    try {
+      const response = await lastValueFrom(
+        this.httpService.get(url, {
+          headers: {
+            'X-Access-Token': token,
+          },
+          timeout: 5000,
+        }),
+      );
+      const data = response.data;
+      if (!data) {
+        throw new Error(
+          'No se encontraron propiedades con los parámetros proporcionados',
+        );
+      }
+      return data;
+    } catch (error) {
+      console.error('Error consultando API de GIS Real Estate:', error);
+      return {
+        success: false,
+        message: 'Error al consultar la API de GIS Real Estate',
+        error: error.message,
+      };
+    }
+
+    // Hacer sol
+  }
+
   async createAuthSession() {
-    const {data} = await lastValueFrom(
+    const { data } = await lastValueFrom(
       this.httpService.post(
         'https://rest.gisrealestate.com/api/auth/signin',
         {
-          "username": "amaldonado",
-          "password": "andres00$$",
-          "rememberMe": false
+          username: 'amaldonado',
+          password: 'andres00$$',
+          rememberMe: false,
         },
         {
           headers: {
@@ -265,7 +259,7 @@ export class RealgeoService {
           },
         },
       ),
-    )
+    );
     return data.accessToken || null;
   }
 }

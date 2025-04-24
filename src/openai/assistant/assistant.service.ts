@@ -262,28 +262,8 @@ export class AssistantService {
       console.log('Mensajes obtenidos:', messages.length);
       console.log('Mensaje:', messages[0].content);
 
-      const formattedMessages = messages.map((message) => {
-        try {
-          const parsed = JSON.parse(message.content);
-          return { ...message, content: parsed };
-        } catch (_) {
-          const content = message.content.trim();
 
-          if (content.startsWith('{') || content.startsWith('[')) {
-            const fixed = tryFixMalformedOutput(content);
-            if (fixed) {
-              return { ...message, content: fixed };
-            }
-          }
-
-          return {
-            ...message,
-            content: { message: String(message.content) },
-          };
-        }
-      });
-
-      const sortedMessages = [...formattedMessages].reverse();
+      const sortedMessages = [...messages].reverse();
 
       // Intentar parsear la respuesta como JSON
       let assistantResponse: any = null;

@@ -15,13 +15,24 @@ export const getMessageListUseCase = async (openai: OpenAI, props: Props) => {
     }
 
     const messages = messageList.data.map((message) => {
-      const messageFormated = message.content.map(
-        (content) => (content as any).text.value,
-      );
-      return {
-        role: message.role,
-        content: messageFormated[0] || '',
-      };
+      const messageFormated = message.content.map((content) => {
+        console.log('content', content);
+        return (content as any).text.value;
+      });
+      try {
+        const jsonFormated = JSON.parse(messageFormated[0]);
+        return {
+          role: message.role,
+          content: jsonFormated,
+        };
+      } catch (error) {
+        return {
+          role: message.role,
+          content: {
+            message: messageFormated[0] || '',
+          },
+        };
+      }
     });
 
     return messages;
